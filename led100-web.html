@@ -1,0 +1,150 @@
+<!doctype html> 
+<html>
+<head>
+<title>Websocket</title>
+<script src="http://code.jquery.com/jquery-2.0.0.js"></script>
+<style>
+.table{
+  display: table;
+  width:100%;
+  border-collapse:collapse;
+}
+.table-row{
+  display: table-row;
+}
+.table-cell, .table-head{
+  display: table-cell;
+  padding:1em;
+  border:#f0f0f0 1px solid;
+}
+.table-head{
+    font-weight:bold;
+}
+</style>
+</head>
+<body>
+<h1>LED Controller</h1>
+<p>
+The point of this example is to have an ESP8266 with Espruino have
+an interactive connection to a web page. This page can be hosted anywhere.
+ESP8266 and web page only have to agree on the WebSocket server to connect to.
+</p>
+<label id="conn_text"></label><br />
+<div>Channel: <input type="text" id="channel" value="led"/></div>
+
+<p>
+Set Color: 
+<button type="submit" class="color" val="R">Red</button>
+<button type="submit" class="color" val="G">Green</button>
+<button type="submit" class="color" val="B">Blue</button>
+<button type="submit" class="color" val="0">Off</button>
+
+</p>
+
+<div class="table">
+ <!-- Rows are statically defined, columns are dynamically created -->
+ <!-- No particular reason -->
+ <div class="table-row"><div id="buttons0"/></div></div>
+ <div class="table-row"><div id="buttons1"/></div></div>
+ <div class="table-row"><div id="buttons2"/></div></div>
+ <div class="table-row"><div id="buttons3"/></div></div>
+ <div class="table-row"><div id="buttons4"/></div></div>
+ <div class="table-row"><div id="buttons5"/></div></div>
+ <div class="table-row"><div id="buttons6"/></div></div>
+ <div class="table-row"><div id="buttons7"/></div></div>
+ <div class="table-row"><div id="buttons8"/></div></div>
+ <div class="table-row"><div id="buttons9"/></div></div>
+</div>
+<div id="messages_txt" />
+
+<script>
+  $(document).ready(function () {
+
+    // Do some logging
+    function logme(message) {
+      var newMessage = document.createElement('p');
+      newMessage.textContent = "Server: " + message;
+      document.getElementById('messages_txt').appendChild(newMessage);
+    };
+
+    for (var y = 0; y < 10; ++y) {
+      buttonRow = document.getElementById('buttons' + y);
+      for (var x = 0; x < 10; ++x) {
+        var btn = document.createElement('button');
+        var txt = document.createTextNode(x + "," + y);
+        btn.appendChild(txt);
+        btn.setAttribute("class", "pixel");
+        btn.setAttribute("x", x);
+        btn.setAttribute("y", y);
+        btn.style.backgroundColor = "gray50";
+        btn.style.width = "40px";
+        btn.style.height = "40px";
+        buttonRow.appendChild(btn);
+      }
+    }
+
+    //change example.com with your IP or your host
+    var ws = new WebSocket("ws://blue.lan:9080/");
+    ws.onopen = function(evt) {
+      logme("Connection opened");
+      //ws.send(JSON.stringify({"join":"led"}));
+    };
+    ws.onmessage = function(evt) {
+      logme(evt.data);
+    };
+    ws.onclose = function(evt) {
+      logme("Connection closed");
+    };
+
+    $(".color").click(function(evt) {
+      //console.log($(this).attr("val"));
+      //console.log(document.getElementById('channel').value);
+      ws.send(JSON.stringify(
+        {
+          "channel":document.getElementById('channel').value,
+          "msg":$(this).attr("val")
+        }
+      ));
+      var color="gray10";
+      switch($(this).attr("val")) {
+        case "R": color = "#f88"; break;
+        case "G": color = "#8f8"; break;
+        case "B": color = "#88f"; break;
+      }
+      $(".pixel").each(function() {
+        $(this).css("background-color", color);
+      })
+    });
+
+    // Broken as hover makes click unusable
+    // But it does turn an LED off. until you move the mouse.
+
+    $(".pixel").click(function(evt) {
+      //console.log($(this).attr("val"));
+      //console.log(document.getElementById('channel').value);
+      var p = "P" + $(this).attr("x") + "," + $(this).attr("y") + ",0,0,0";
+      $(this).css("background-color", "gray10");
+      ws.send(JSON.stringify(
+        {
+          "channel":document.getElementById('channel').value,
+          "msg":p
+        }
+      ));
+    });
+
+    // Set one pixel to (50,50,50)
+    $(".pixel").hover(function() {
+      var p = "P" + $(this).attr("x") + "," + $(this).attr("y") + ",50,50,50";
+      $(this).css("background-color", "white");
+      ws.send(JSON.stringify(
+        {
+          "channel":document.getElementById('channel').value,
+          "msg":p
+        }
+      ));
+    })
+
+  });
+</script>
+</body>
+</html>

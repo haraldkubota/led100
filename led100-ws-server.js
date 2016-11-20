@@ -11,11 +11,15 @@
 var WebSocketServer = require('ws').Server,
     wss = new WebSocketServer({
         port: 9080
-    });
+    }),
+
+    targetChannels = [];
 
 wss.on('connection', function connection(ws) {
-    ws.channel = [];
-    ws.send("Client Joined");
+
+    targetChannels.push({ws:ws, channel:"all"});
+
+    console.log("Client Joined, default channel");
 
     ws.on('message', function(message) {
         console.log("Received: "+message);
@@ -26,12 +30,15 @@ wss.on('connection', function connection(ws) {
         }
         if (message.join) {
         	console.log("Server got: Join to "+message.join);
-            ws.channel.push(message.join);
+            for (let i=0; i<targetChannels.length; ++i) {
+            	if (targetChannels[i].ws === ws)
+        			targetChannels[i].channel = message.join;
+        	}
         }
         if (message.channel && message.msg) {
         	console.log("Server got: To channel " + message.channel
                 + " sending " + message.msg);
-            broadcast(message);
+            sendToChannel(message.channel, message.msg);
         }
     });
 
@@ -44,6 +51,16 @@ wss.on('connection', function connection(ws) {
         console.log('Connection closed')
     })
 });
+
+function sendToChannel(channel, message) {
+	for (let i=0; i<targetChannels.length; ++i) {
+		if (channel == "all" || targetChannels[i].channel == channel) {
+			//console.log("ws=", targetChannels[i].ws);
+			console.log("Sending \""+message+"\" to channel "+targetChannels[i].channel);
+			targetChannels[i].ws.send(message);
+		}
+	}
+}
 
 function broadcast(message) {
     wss.clients.forEach(function each(client) {

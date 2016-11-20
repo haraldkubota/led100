@@ -37,6 +37,7 @@ Set Color:
 <button type="submit" class="color" val="R">Red</button>
 <button type="submit" class="color" val="G">Green</button>
 <button type="submit" class="color" val="B">Blue</button>
+<button type="submit" class="color" val="W">White</button>
 <button type="submit" class="color" val="0">Off</button>
 
 </p>
@@ -55,7 +56,10 @@ Set Color:
  <div class="table-row"><div id="buttons8"/></div></div>
  <div class="table-row"><div id="buttons9"/></div></div>
 </div>
-<div id="messages_txt" />
+
+<div id="power"></div>
+
+<div id="messages_txt"></div>
 
 <script>
   $(document).ready(function () {
@@ -66,6 +70,10 @@ Set Color:
       newMessage.textContent = "Server: " + message;
       document.getElementById('messages_txt').appendChild(newMessage);
     };
+    function updatePower(ampere) {
+      var a=document.getElementById('power');
+      a.innerHTML = "<p>"+ampere+" A</p>";
+    }
 
     for (var y = 0; y < 10; ++y) {
       buttonRow = document.getElementById('buttons' + y);
@@ -87,10 +95,12 @@ Set Color:
     var ws = new WebSocket("ws://blue.lan:9080/");
     ws.onopen = function(evt) {
       logme("Connection opened");
-      //ws.send(JSON.stringify({"join":"led"}));
+      // Join the web channel as this is a web browser
+      ws.send(JSON.stringify({"join":"web"}));
     };
     ws.onmessage = function(evt) {
-      logme(evt.data);
+      updatePower(evt.data);
+      //logme("Incoming: "+evt.data);
     };
     ws.onclose = function(evt) {
       logme("Connection closed");
@@ -110,6 +120,7 @@ Set Color:
         case "R": color = "#f88"; break;
         case "G": color = "#8f8"; break;
         case "B": color = "#88f"; break;
+        case "W": color = "#ccc"; break;
       }
       $(".pixel").each(function() {
         $(this).css("background-color", color);
@@ -134,7 +145,7 @@ Set Color:
 
     // Set one pixel to (50,50,50)
     $(".pixel").hover(function() {
-      var p = "P" + $(this).attr("x") + "," + $(this).attr("y") + ",50,50,50";
+      var p = "P" + $(this).attr("x") + "," + $(this).attr("y") + ",60,60,60";
       $(this).css("background-color", "white");
       ws.send(JSON.stringify(
         {

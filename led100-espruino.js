@@ -15,7 +15,7 @@ wifi.save();
 */
 
 var esp8266 = require("ESP8266");
-E.setClock(80);
+E.setClock(160);
 
 // Debug output
 console.log(esp8266.getState());
@@ -60,6 +60,19 @@ var WebSocket = require("ws");
 
 // To connect or re-connect, copy&paste from here until the bottom
 
+
+var powerUsage=0;
+
+function powerCalculate() {
+  var n=0;
+  for (var i=0; i<300; ++i) {
+    n=n+leds[i]/256*0.002;
+  }
+  powerUsage=n;
+}
+
+setInterval(powerCalculate,1000);
+
 var ws = new WebSocket(host,{
   path: '/',
   port: 9080, // default is 80
@@ -79,6 +92,7 @@ ws.on('message', function(msg) {
     case 'R': colorize(40, 10, 10); break;
     case 'G': colorize(10, 40, 10); break;
     case 'B': colorize(10, 10, 40); break;
+    case 'W': colorize(40, 40, 40); break;
     case '0': colorize(0, 0, 0); break;
     default:
     // Assumptions:
@@ -99,6 +113,7 @@ ws.on('message', function(msg) {
     }
   }
   esp8266.neopixelWrite(NodeMCU.D4, leds);
+  ws.send(JSON.stringify({ channel: "web", msg: ""+powerUsage }));
 });
 
 
@@ -108,7 +123,7 @@ ws.join = function (channel) {
     this.send(JSON.stringify({ join : channel }));
 };
 
-// Join the "led" channel
+// Join the "led" channel as this is a display
 
 ws.join("led");
 
